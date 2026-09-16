@@ -300,18 +300,34 @@ func (s *server) torznabStream(w http.ResponseWriter, r *http.Request, contentTy
 		rv = rv[:20]
 	}
 
-	streams := make([]bmStream, 0, len(rv))
+	streams := make([]any, 0, len(rv))
 	for _, res := range rv {
 		strmName := "Torznab"
 		if res.resolution != "" {
 			strmName += "\n" + res.resolution
 		}
+		title := res.title +
+			"\n" + humanizeSize(res.size) +
+			" | seeders: " + strconv.Itoa(res.seeders)
+		if s.cfg.TorznabURLStreams {
+			su := requestBaseURL(r) + "/" + res.hash + "/resolve"
+			if contentType == "series" && season > 0 && episode > 0 {
+				su += "?s=" + strconv.Itoa(season) + "&e=" + strconv.Itoa(episode)
+			}
+			streams = append(streams, map[string]any{
+				"name":  strmName,
+				"title": title,
+				"url":   su,
+				"behaviorHints": map[string]any{
+					"bingeGroup": "torznab|" + res.resolution,
+				},
+			})
+			continue
+		}
 		streams = append(streams, bmStream{
 			InfoHash: res.hash,
 			Name:     strmName,
-			Title: res.title +
-				"\n" + humanizeSize(res.size) +
-				" | seeders: " + strconv.Itoa(res.seeders),
+			Title:    title,
 			BehaviorHints: &bmBehavior{
 				BingeGroup: "torznab|" + res.resolution,
 			},
