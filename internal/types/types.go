@@ -48,6 +48,11 @@ type Config struct {
 	// Torznab integration (Prowlarr/Jackett/NZBHydra/Bitmagnet /torznab).
 	TorznabURL    string // Torznab endpoint base URL; "" disables stream queries
 	TorznabAPIKey string // Optional API key appended as &apikey=; "" = no auth
+	// TorznabURLStreams makes the /torznab add-on emit url= streams pointing at
+	// this server's own /{infoHash}/resolve redirector instead of infoHash
+	// streams (STREMIO_TORZNAB_URL_STREAMS, default false). For clients that
+	// can only play plain http(s) URLs.
+	TorznabURLStreams bool
 
 	// Cinemeta-compatible metadata addon base URL used by the /bitmagnet and
 	// /torznab add-ons to resolve an IMDB id to a title (STREMIO_METADATA_URL).
