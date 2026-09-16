@@ -225,6 +225,8 @@ func (s *server) route(w http.ResponseWriter, r *http.Request) {
 			s.handleRemove(w, r, ih)
 		case seg[1] == "stats.json":
 			s.writeStats(w, ih, -1)
+		case seg[1] == "resolve":
+			s.handleResolve(w, r, ih)
 		case len(seg) >= 3 && seg[2] == "stats.json":
 			idx, _ := strconv.Atoi(seg[1])
 			s.writeStats(w, ih, idx)
