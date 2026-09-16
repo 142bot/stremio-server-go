@@ -167,6 +167,7 @@ func main() {
 		BitmagnetURL:      getenv("STREMIO_BITMAGNET_URL", ""),
 		TorznabURL:        getenv("STREMIO_TORZNAB_URL", ""),
 		TorznabAPIKey:     getenv("STREMIO_TORZNAB_APIKEY", ""),
+		TorznabURLStreams: envBool("STREMIO_TORZNAB_URL_STREAMS", false),
 		MetadataURL:       metadataURL(),                               // Cinemeta-compatible meta addon base; "" disables (STREMIO_METADATA_URL)
 		DisableTrackers:   envBool("STREMIO_DISABLE_TRACKERS", false),  // disable all tracker announces (DHT/PEX/webseeds still used); accepts 1/true/0/false
 		DisableWebtorrent: envBool("STREMIO_DISABLE_WEBTORRENT", true), // default disabled; set =0/false to enable WebRTC/WebTorrent (pion) peers
