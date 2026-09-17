@@ -5,7 +5,9 @@
 //	GET /torznab/manifest.json
 //	     → Stremio addon manifest (id community.stremioservergo.torznab, v0.1.0)
 //	GET /torznab/stream/<type>/<id>.json
-//	     → {streams:[{infoHash,...}]} from a Torznab indexer (Prowlarr/Jackett/NZBHydra/Bitmagnet)
+//	     → {streams:[{infoHash,...}]} from a Torznab indexer (Prowlarr/Jackett/NZBHydra/Bitmagnet),
+//	       or {streams:[{url,...}]} pointing at /{infoHash}/resolve when
+//	       STREMIO_TORZNAB_STREAM_MODE=url.
 //
 // The indexer is queried via its Torznab RSS/XML API (GET to STREMIO_TORZNAB_URL).
 // Titles are resolved via Cinemeta (v3-cinemeta.strem.io) and cached for 6 hours.
@@ -250,15 +252,17 @@ func (s *server) torznabStream(w http.ResponseWriter, r *http.Request, contentTy
 	// Numeric IMDB id (strip leading "tt").
 	numeric := strings.TrimPrefix(baseImdb, "tt")
 
-	// Primary query: search by IMDB id.
+	// Primary query: search by IMDB id. Indexers that reject imdb-keyed
+	// tvsearch (e.g. Jackett's aggregate endpoint answers HTTP 400) degrade
+	// into the title fallback below instead of short-circuiting.
 	items, err := tnQueryIMDB(r, s.cfg.TorznabURL, s.cfg.TorznabAPIKey, contentType, numeric, season, episode)
 	if err != nil {
-		logging.For("torznab").Error("imdb query failed", "type", contentType, "imdb", baseImdb, "err", err)
-		writeJSON(w, http.StatusOK, empty)
-		return
+		logging.For("torznab").Warn("imdb query failed; falling back to title search", "type", contentType, "imdb", baseImdb, "err", err)
+		items = nil
 	}
 
-	// Fallback: if no items returned, resolve title via Cinemeta and retry with q=.
+	// Fallback: if no items returned (or the primary query errored), resolve
+	// title via Cinemeta and retry with q=.
 	if len(items) == 0 {
 		title, _ := resolveCinemeta(r, s.cfg.MetadataURL, contentType, baseImdb)
 		if title != "" {
@@ -309,7 +313,7 @@ func (s *server) torznabStream(w http.ResponseWriter, r *http.Request, contentTy
 		title := res.title +
 			"\n" + humanizeSize(res.size) +
 			" | seeders: " + strconv.Itoa(res.seeders)
-		if s.cfg.TorznabURLStreams {
+		if s.cfg.TorznabStreamMode == "url" {
 			su := requestBaseURL(r) + "/" + res.hash + "/resolve"
 			if contentType == "series" && season > 0 && episode > 0 {
 				su += "?s=" + strconv.Itoa(season) + "&e=" + strconv.Itoa(episode)
